@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SoftmaniaLogo } from "@/components/softmania-logo"
 import {
   Calculator,
@@ -23,7 +24,77 @@ import {
   Download,
   Calendar,
   IndianRupee,
+  Globe,
+  Cpu,
 } from "lucide-react"
+
+// AWS Pricing Data - Separated by instance type
+const T2_MEDIUM_REGIONS = {
+  "us-east-1": { name: "US East (N. Virginia)", price: 0.0464 },
+  "us-east-2": { name: "US East (Ohio)", price: 0.0464 },
+  "us-west-1": { name: "US West (N. California)", price: 0.0552 },
+  "us-west-2": { name: "US West (Oregon)", price: 0.0464 },
+  "af-south-1": { name: "Africa (Cape Town)", price: 0.0616 },
+  "ap-south-1": { name: "Asia Pacific (Mumbai)", price: 0.0496 },
+  "ap-northeast-3": { name: "Asia Pacific (Osaka)", price: 0.0608 },
+  "ap-northeast-2": { name: "Asia Pacific (Seoul)", price: 0.0576 },
+  "ap-southeast-1": { name: "Asia Pacific (Singapore)", price: 0.0584 },
+  "ap-southeast-2": { name: "Asia Pacific (Sydney)", price: 0.0584 },
+  "ap-northeast-1": { name: "Asia Pacific (Tokyo)", price: 0.0608 },
+  "ca-central-1": { name: "Canada (Central)", price: 0.0512 },
+  "eu-central-1": { name: "Europe (Frankfurt)", price: 0.0536 },
+  "eu-west-1": { name: "Europe (Ireland)", price: 0.05 },
+  "eu-west-2": { name: "Europe (London)", price: 0.052 },
+  "eu-west-3": { name: "Europe (Paris)", price: 0.0528 },
+  "sa-east-1": { name: "South America (São Paulo)", price: 0.0744 },
+}
+
+const T3_MEDIUM_REGIONS = {
+  "us-east-1": { name: "US East (N. Virginia)", price: 0.0416 },
+  "us-east-2": { name: "US East (Ohio)", price: 0.0416 },
+  "us-west-1": { name: "US West (N. California)", price: 0.0496 },
+  "us-west-2": { name: "US West (Oregon)", price: 0.0416 },
+  "ca-central-1": { name: "Canada (Central)", price: 0.0464 },
+  "ca-west-1": { name: "Canada (West – Calgary)", price: 0.0464 },
+  "sa-east-1": { name: "South America (São Paulo)", price: 0.0672 },
+  "eu-central-1": { name: "Europe (Frankfurt)", price: 0.048 },
+  "eu-central-2": { name: "Europe (Zurich)", price: 0.0528 },
+  "eu-north-1": { name: "Europe (Stockholm)", price: 0.0432 },
+  "eu-west-1": { name: "Europe (Ireland)", price: 0.0456 },
+  "eu-west-2": { name: "Europe (London)", price: 0.0472 },
+  "eu-west-3": { name: "Europe (Paris)", price: 0.0472 },
+  "eu-south-1": { name: "Europe (Milan)", price: 0.0479 },
+  "eu-south-2": { name: "Europe (Spain)", price: 0.0456 },
+  "af-south-1": { name: "Africa (Cape Town)", price: 0.0542 },
+  "ap-southeast-5": { name: "Asia Pacific (Malaysia)", price: 0.0475 },
+  "ap-south-1": { name: "Asia Pacific (Mumbai)", price: 0.0448 },
+  "ap-south-2": { name: "Asia Pacific (Hyderabad)", price: 0.0448 },
+  "ap-northeast-2": { name: "Asia Pacific (Seoul)", price: 0.052 },
+  "ap-northeast-3": { name: "Asia Pacific (Osaka)", price: 0.0544 },
+  "ap-southeast-1": { name: "Asia Pacific (Singapore)", price: 0.0528 },
+  "ap-southeast-2": { name: "Asia Pacific (Sydney)", price: 0.0528 },
+  "ap-southeast-3": { name: "Asia Pacific (Jakarta)", price: 0.0528 },
+  "ap-southeast-4": { name: "Asia Pacific (Melbourne)", price: 0.0528 },
+  "ap-southeast-7": { name: "Asia Pacific (Bangkok)", price: 0.0528 },
+  "me-south-1": { name: "Middle East (Bahrain)", price: 0.0502 },
+  "me-central-1": { name: "Middle East (UAE)", price: 0.0502 },
+  "il-central-1": { name: "Israel (Tel Aviv)", price: 0.0479 },
+  "us-gov-east-1": { name: "AWS GovCloud (US-East)", price: 0.0488 },
+  "us-gov-west-1": { name: "AWS GovCloud (US-West)", price: 0.0488 },
+}
+
+const INSTANCE_TYPES = {
+  "t2.medium": {
+    name: "t2.medium",
+    description: "Burstable Performance - 2 vCPU, 4 GB RAM",
+    regionCount: Object.keys(T2_MEDIUM_REGIONS).length,
+  },
+  "t3.medium": {
+    name: "t3.medium",
+    description: "Burstable Performance - 2 vCPU, 4 GB RAM (Latest Gen)",
+    regionCount: Object.keys(T3_MEDIUM_REGIONS).length,
+  },
+}
 
 export default function SplunkBudgetCalculator() {
   // Input states
@@ -35,9 +106,13 @@ export default function SplunkBudgetCalculator() {
   const [exchangeRate, setExchangeRate] = useState(84)
   const [desiredDays, setDesiredDays] = useState(10)
 
+  // AWS Configuration
+  const [selectedRegion, setSelectedRegion] = useState("ap-south-1") // Default to Mumbai
+  const [selectedInstanceType, setSelectedInstanceType] = useState("t2.medium")
+
   // Deployment type states
   const [deploymentType, setDeploymentType] = useState<"standalone" | "non-clustered" | "clustered">("clustered")
-  const [maintenanceCostEnabled, setMaintenanceCostEnabled] = useState(false)
+  const [maintenanceCostEnabled, setMaintenanceCostEnabled] = useState(true)
 
   // Toggle mode: false = Days→Budget (PRIMARY), true = Budget→Days
   const [budgetToDays, setBudgetToDays] = useState(false)
@@ -56,9 +131,47 @@ export default function SplunkBudgetCalculator() {
     totalBudgetUsed: 0,
   })
 
-  // AWS pricing constants
-  const EC2_RATE_USD = 0.0464 // per hour for t2.medium
+  // Storage pricing constant
   const STORAGE_RATE_USD = 0.08 // per GB per month for gp3
+
+  // Get current EC2 rate based on selected region and instance type
+  const getCurrentEC2Rate = () => {
+    if (selectedInstanceType === "t3.medium") {
+      const region = T3_MEDIUM_REGIONS[selectedRegion as keyof typeof T3_MEDIUM_REGIONS]
+      return region?.price || 0.0448 // fallback to Mumbai t3.medium
+    } else {
+      const region = T2_MEDIUM_REGIONS[selectedRegion as keyof typeof T2_MEDIUM_REGIONS]
+      return region?.price || 0.0496 // fallback to Mumbai t2.medium
+    }
+  }
+
+  // Get available regions based on instance type
+  const getAvailableRegions = () => {
+    return selectedInstanceType === "t3.medium" ? T3_MEDIUM_REGIONS : T2_MEDIUM_REGIONS
+  }
+
+  // Get current region info
+  const getCurrentRegionInfo = () => {
+    const availableRegions = getAvailableRegions()
+    return availableRegions[selectedRegion as keyof typeof availableRegions]
+  }
+
+  // Handle instance type change and reset region if not available
+  const handleInstanceTypeChange = (newInstanceType: string) => {
+    setSelectedInstanceType(newInstanceType)
+
+    // Check if current region is available in new instance type
+    const newAvailableRegions = newInstanceType === "t3.medium" ? T3_MEDIUM_REGIONS : T2_MEDIUM_REGIONS
+
+    if (!newAvailableRegions[selectedRegion as keyof typeof newAvailableRegions]) {
+      // Reset to Mumbai if available, otherwise first available region
+      if (newAvailableRegions["ap-south-1"]) {
+        setSelectedRegion("ap-south-1")
+      } else {
+        setSelectedRegion(Object.keys(newAvailableRegions)[0])
+      }
+    }
+  }
 
   useEffect(() => {
     calculateCosts()
@@ -73,9 +186,13 @@ export default function SplunkBudgetCalculator() {
     budgetToDays,
     deploymentType,
     maintenanceCostEnabled,
+    selectedRegion,
+    selectedInstanceType,
   ])
 
   const calculateCosts = () => {
+    const EC2_RATE_USD = getCurrentEC2Rate()
+
     // Instance cost calculation
     const instanceCostUSD = EC2_RATE_USD * runtimePerDay * instancesPerPerson * numberOfUsers
     const instanceCostINR = instanceCostUSD * exchangeRate
@@ -157,6 +274,9 @@ export default function SplunkBudgetCalculator() {
       month: "long",
       day: "numeric",
     })
+
+    const currentRegion = getCurrentRegionInfo()
+    const currentEC2Rate = getCurrentEC2Rate()
 
     const reportHTML = `
     <!DOCTYPE html>
@@ -528,22 +648,22 @@ export default function SplunkBudgetCalculator() {
     }
   }
 
+  const currentRegionInfo = getCurrentRegionInfo()
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header with Logo - Mobile Responsive */}
-          <div className="flex flex-col sm:flex-row items-center justify-between mb-6 sm:mb-8 gap-4">
-            <div className="order-2 sm:order-1">
-              <SoftmaniaLogo size="md" />
-            </div>
-            <div className="text-center flex-1 order-1 sm:order-2">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 font-heading flex-wrap">
+          {/* Header with Logo */}
+          <div className="flex items-center justify-between mb-8">
+            <SoftmaniaLogo size="lg" />
+            <div className="text-center flex-1">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white flex items-center justify-center gap-2 font-heading">
                 
-                <span className="text-center">Splunk Lab Budget Calculator</span>
+                Splunk Lab Budget Calculator
               </h1>
             </div>
-            <div className="w-0 sm:w-32 lg:w-48 order-3"></div> {/* Spacer for balance on desktop */}
+            <div className="w-48"></div> {/* Spacer for balance */}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
@@ -556,6 +676,7 @@ export default function SplunkBudgetCalculator() {
                       <ArrowRightLeft className="h-5 w-5" />
                       Configuration
                     </CardTitle>
+                    <CardDescription>Configure your lab parameters and calculation mode</CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="mode-toggle" className="text-sm font-medium">
@@ -570,6 +691,90 @@ export default function SplunkBudgetCalculator() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* AWS Configuration */}
+                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h3 className="font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    AWS Configuration
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Cpu className="h-4 w-4 text-purple-600" />
+                        <Label htmlFor="instance-type">Instance Type</Label>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-4 w-4 text-gray-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Select the EC2 instance type for your deployment</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select value={selectedInstanceType} onValueChange={handleInstanceTypeChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Instance Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(INSTANCE_TYPES).map(([type, info]) => (
+                            <SelectItem key={type} value={type}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{info.name}</span>
+                                <span className="text-xs text-gray-500">
+                                  {info.description} • {info.regionCount} regions
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-blue-600" />
+                        <Label htmlFor="region">AWS Region</Label>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-4 w-4 text-gray-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Select the AWS region for your deployment</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select AWS Region" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {Object.entries(getAvailableRegions()).map(([code, region]) => (
+                            <SelectItem key={code} value={code}>
+                              <div className="flex justify-between items-center w-full">
+                                <span>{region.name}</span>
+                                <span className="text-xs text-gray-500 ml-2">${region.price.toFixed(4)}/hr</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="text-xs text-gray-500">
+                        {Object.keys(getAvailableRegions()).length} regions available for {selectedInstanceType}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 p-2 rounded">
+                    <strong>Current Rate:</strong> ${getCurrentEC2Rate().toFixed(4)}/hour in{" "}
+                    {getCurrentRegionInfo()?.name || selectedRegion}
+                    <br />
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {Object.keys(getAvailableRegions()).length} regions available for {selectedInstanceType}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Deployment Type Tabs */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Deployment Type</Label>
@@ -617,7 +822,7 @@ export default function SplunkBudgetCalculator() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-blue-600" />
-                      <Label htmlFor="days" className="text-base font-bold">Desired Days</Label>
+                      <Label htmlFor="days">Desired Days</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="h-4 w-4 text-gray-400" />
@@ -632,14 +837,14 @@ export default function SplunkBudgetCalculator() {
                       type="number"
                       value={desiredDays}
                       onChange={(e) => setDesiredDays(Number(e.target.value))}
-                      className="text-xl border-green-200 focus:border-green-500 focus:ring-green-500"
+                      className="text-lg"
                     />
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <IndianRupee className="h-4 w-4 text-green-600" />
-                      <Label htmlFor="budget" className="text-base font-bold">Budget (₹)</Label>
+                      <Label htmlFor="budget">Budget (₹)</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="h-4 w-4 text-gray-400" />
@@ -654,7 +859,7 @@ export default function SplunkBudgetCalculator() {
                       type="number"
                       value={budget}
                       onChange={(e) => setBudget(Number(e.target.value))}
-                      className="text-xl border-green-200 focus:border-green-500 focus:ring-green-500"
+                      className="text-lg"
                     />
                   </div>
                 )}
@@ -728,7 +933,7 @@ export default function SplunkBudgetCalculator() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-teal-600" />
-                      <Label htmlFor="users" className="text-base font-bold">Number of Users</Label>
+                      <Label htmlFor="users">Number of Users</Label>
                       <Tooltip>
                         <TooltipTrigger>
                           <Info className="h-4 w-4 text-gray-400" />
@@ -771,10 +976,18 @@ export default function SplunkBudgetCalculator() {
                 <div className="pt-4 space-y-4">
                   <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                     <p>
-                      <strong>AWS Pricing:</strong>
+                      <strong>Current AWS Pricing:</strong>
                     </p>
-                    <p>• EC2 (t2.medium): $0.0464/hour</p>
+                    <p>
+                      • EC2 ({selectedInstanceType}): ${getCurrentEC2Rate().toFixed(4)}/hour
+                    </p>
                     <p>• gp3 Storage: $0.08/GB-month</p>
+                    <p>
+                      • Region: {getCurrentRegionInfo()?.name || selectedRegion} ({selectedRegion})
+                    </p>
+                    <p className="text-blue-600 dark:text-blue-400">
+                      • {Object.keys(getAvailableRegions()).length} regions available for {selectedInstanceType}
+                    </p>
                   </div>
 
                   <Separator />
@@ -784,7 +997,7 @@ export default function SplunkBudgetCalculator() {
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                         <Label htmlFor="maintenance-toggle" className="text-sm font-medium">
-                          Soft Mania Maintenance Cost (+25%)
+                          Softmania Maintenance Cost (+25%)
                         </Label>
                         <Tooltip>
                           <TooltipTrigger>
@@ -818,7 +1031,11 @@ export default function SplunkBudgetCalculator() {
                   <Calculator className="h-5 w-5" />
                   {!budgetToDays ? "Required Budget" : "Budget Analysis"}
                 </CardTitle>
-                
+                <CardDescription>
+                  {!budgetToDays
+                    ? "Calculate the budget needed for your desired runtime"
+                    : "See how long your budget will last"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {!budgetToDays ? (
@@ -1001,7 +1218,8 @@ export default function SplunkBudgetCalculator() {
                 </div>
 
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-2">
-                  Exchange Rate: ₹{exchangeRate} per USD
+                  Exchange Rate: ₹{exchangeRate} per USD | {getCurrentRegionInfo()?.name || selectedRegion} (
+                  {selectedInstanceType})
                 </div>
               </CardContent>
             </Card>
@@ -1010,7 +1228,7 @@ export default function SplunkBudgetCalculator() {
           {/* Additional Info */}
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle className="text-lg">Usage Scenarios</CardTitle>
+              <CardTitle className="text-lg">📋 Usage Scenarios</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
