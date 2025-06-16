@@ -629,7 +629,10 @@ export default function SplunkBudgetCalculator() {
                 </div>
                 <div class="footer-text">
                     This report was generated using Soft Mania's Splunk Lab Budget Calculator<br>
-                    For support and inquiries, contact our technical team
+                    For support and inquiries, contact our 
+                    <a href="http://wa.me/918317349618" target="_blank" style="color: #25D366; text-decoration: none;">
+                      technical team
+                    </a>
                 </div>
             </div>
         </div>
